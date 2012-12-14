@@ -33,7 +33,6 @@ typedef void (^AGSIEVDidChangeRotationBlock)(NSInteger rotation);
     UIView *overlayView;
     UIView *ratioView;
     UIView *ratioControlsView;
-    AGMovementType ratioViewMovementType;
     
     CGFloat ratio;
     UIColor *ratioViewBorderColor;
@@ -47,7 +46,8 @@ typedef void (^AGSIEVDidChangeRotationBlock)(NSInteger rotation);
     CGRect cropRect;
     
     UIPanGestureRecognizer *panGestureRecognizer;
-    
+    UIPinchGestureRecognizer *pinchGestureRecognizer;
+
     AGSIEVDidChangeCropRectBlock didChangeCropRectBlock;
     AGSIEVDidChangeRotationBlock didChangeRotationBlock;
 }

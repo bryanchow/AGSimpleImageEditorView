@@ -42,6 +42,7 @@ CGSize CGSizeAbsolute(CGSize size) {
 //  Gestures
 //  
 - (void)panGesture:(UIPanGestureRecognizer *)recognizer;
+- (void)pinchGesture:(UIPinchGestureRecognizer *)recognizer;
 
 //
 //  Output
@@ -254,7 +255,8 @@ CGSize CGSizeAbsolute(CGSize size) {
 - (void)dealloc
 {
     [panGestureRecognizer release];
-    
+    [pinchGestureRecognizer release];
+
     [ratioViewBorderColor release];
     [ratioView release];
     [overlayView release];
@@ -277,7 +279,8 @@ CGSize CGSizeAbsolute(CGSize size) {
     // Setup gestures
     panGestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(panGesture:)];
     panGestureRecognizer.minimumNumberOfTouches = 1;
-    
+    pinchGestureRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(pinchGesture:)];
+
     animationDuration = 0.5f;
     displayedInstance = nil;
     ratio = 0;
@@ -309,10 +312,11 @@ CGSize CGSizeAbsolute(CGSize size) {
     ratioView = [[UIView alloc] initWithFrame:CGRectZero];
     ratioView.autoresizingMask = UIViewAutoresizingNone;
     [ratioView addGestureRecognizer:panGestureRecognizer];
+    [ratioView addGestureRecognizer:pinchGestureRecognizer];
     [ratioControlsView addSubview:ratioView];
-    
+
     [self addSubview:ratioControlsView];
-    
+
     self.ratioViewBorderColor = [UIColor redColor];
     self.ratioViewBorderWidth = 1.f;
     
@@ -479,11 +483,9 @@ CGSize CGSizeAbsolute(CGSize size) {
     if (imageRatio > self.ratio) {
         // Width > Height
         frame = CGRectMake(0, 0, self.ratio * actualImageRect.size.height, actualImageRect.size.height);
-        ratioViewMovementType = AGMovementTypeHorizontally;
     } else {
         // Height > Width
         frame = CGRectMake(0, 0, actualImageRect.size.width, actualImageRect.size.width / self.ratio);
-        ratioViewMovementType = AGMovementTypeVertically;
     }
     
     [self.ratioView setFrame:frame];
@@ -630,50 +632,60 @@ CGSize CGSizeAbsolute(CGSize size) {
 
 - (void)panGesture:(UIPanGestureRecognizer *)recognizer
 {
-    CGPoint translation = [recognizer translationInView:self.ratioView];
+    CGPoint translation = [recognizer translationInView:self];
     CGPoint center = CGPointMake(0, 0);
     
-    if (ratioViewMovementType == AGMovementTypeHorizontally)
-    {
-        // Superview's width minus half of ratio view's width
-        CGFloat maxXCenter = self.ratioControlsView.frame.size.width - (self.ratioView.frame.size.width * .5);
-        // Half of ratio view's width
-        CGFloat minXCenter = (self.ratioView.frame.size.width * .5);
-        CGFloat computedXCenter = recognizer.view.center.x + translation.x;
-        
-        if (computedXCenter < minXCenter) {
-            computedXCenter = minXCenter;
-        } else if (computedXCenter > maxXCenter) {
-            computedXCenter = maxXCenter;
-        }
-        
-        center = CGPointMake(computedXCenter, recognizer.view.center.y);
-    } else if (ratioViewMovementType == AGMovementTypeVertically)
-    {
-        // Superview's height minus half of ratio view's height
-        CGFloat maxYCenter = self.ratioControlsView.frame.size.height - (self.ratioView.frame.size.height * .5);
-        // Half of ratio view's height
-        CGFloat minYCenter = (self.ratioView.frame.size.height * .5);
-        CGFloat computedYCenter = recognizer.view.center.y + translation.y;
-        
-        if (computedYCenter < minYCenter) {
-            computedYCenter = minYCenter;
-        } else if (computedYCenter > maxYCenter) {
-            computedYCenter = maxYCenter;
-        }
-        
-        center = CGPointMake(recognizer.view.center.x, computedYCenter);
+    // Superview's width minus half of ratio view's width
+    CGFloat maxXCenter = self.ratioControlsView.frame.size.width - (self.ratioView.frame.size.width * .5);
+    // Half of ratio view's width
+    CGFloat minXCenter = (self.ratioView.frame.size.width * .5);
+    CGFloat computedXCenter = recognizer.view.center.x + translation.x;
+
+    if (computedXCenter < minXCenter) {
+        computedXCenter = minXCenter;
+    } else if (computedXCenter > maxXCenter) {
+        computedXCenter = maxXCenter;
     }
+
+    // Superview's height minus half of ratio view's height
+    CGFloat maxYCenter = self.ratioControlsView.frame.size.height - (self.ratioView.frame.size.height * .5);
+    // Half of ratio view's height
+    CGFloat minYCenter = (self.ratioView.frame.size.height * .5);
+    CGFloat computedYCenter = recognizer.view.center.y + translation.y;
+
+    if (computedYCenter < minYCenter) {
+        computedYCenter = minYCenter;
+    } else if (computedYCenter > maxYCenter) {
+        computedYCenter = maxYCenter;
+    }
+
+    center = CGPointMake(computedXCenter, computedYCenter);
+
+    [recognizer setTranslation:CGPointMake(0, 0) inView:recognizer.view];
+    [self.ratioView setCenter:center];
     
-    [recognizer setTranslation:CGPointMake(0, 0) inView:self.ratioView];
-    [recognizer.view setCenter:center];
-    
+    // Notification
+    if (self.didChangeCropRectBlock)
+        self.didChangeCropRectBlock(self.ratioView.frame);
+
+    // Reset overlay clipping
+    [self overlayClipping];
+
+}
+
+- (void)pinchGesture:(UIPinchGestureRecognizer *)recognizer
+{
+
+    self.ratioView.transform = CGAffineTransformScale(self.ratioView.transform, recognizer.scale, recognizer.scale);
+    recognizer.scale = 1;
+
     // Notification
     if (self.didChangeCropRectBlock)
         self.didChangeCropRectBlock(self.ratioView.frame);
     
     // Reset overlay clipping
     [self overlayClipping];
+
 }
 
 @end
