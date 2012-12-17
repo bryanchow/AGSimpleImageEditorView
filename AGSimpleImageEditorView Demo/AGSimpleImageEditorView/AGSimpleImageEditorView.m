@@ -299,6 +299,7 @@ CGSize CGSizeAbsolute(CGSize size) {
     ratioControlsView = [[UIView alloc] initWithFrame:imageView.frame];
     ratioControlsView.hidden = YES;
     ratioControlsView.autoresizesSubviews = YES;
+    [ratioControlsView addGestureRecognizer:pinchGestureRecognizer];
     
     // Overlay
     overlayView = [[UIView alloc] initWithFrame:CGRectZero];
@@ -312,7 +313,6 @@ CGSize CGSizeAbsolute(CGSize size) {
     ratioView = [[UIView alloc] initWithFrame:CGRectZero];
     ratioView.autoresizingMask = UIViewAutoresizingNone;
     [ratioView addGestureRecognizer:panGestureRecognizer];
-    [ratioView addGestureRecognizer:pinchGestureRecognizer];
     [ratioControlsView addSubview:ratioView];
 
     [self addSubview:ratioControlsView];
